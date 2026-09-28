@@ -1,0 +1,23 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>storage-agent</title>
+  <link rel="stylesheet" href="/web/style.css">
+</head>
+<body>
+  <div id="sidebar">
+    <h2>MCP Status</h2>
+    <div id="mcp-status">Loading…</div>
+  </div>
+  <div id="main">
+    <div id="messages"></div>
+    <div id="thinking" class="hidden">thinking…</div>
+    <form id="chat-form">
+      <input id="chat-input" type="text" autocomplete="off" placeholder="Ask storage-agent…">
+      <button type="submit">Send</button>
+    </form>
+  </div>
+  <script src="/web/chat.js"></script>
+</body>
+</html>

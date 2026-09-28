@@ -3,6 +3,8 @@ from contextlib import AsyncExitStack, asynccontextmanager
 from pathlib import Path
 
 from fastapi import FastAPI
+from fastapi.responses import FileResponse
+from fastapi.staticfiles import StaticFiles
 from langchain.chat_models import init_chat_model
 from langgraph.checkpoint.sqlite.aio import AsyncSqliteSaver
 
@@ -77,8 +79,9 @@ app = FastAPI(lifespan=lifespan)
 app.include_router(chat_router)
 app.include_router(tasks_router)
 app.include_router(mcp_status_router)
+app.mount("/web", StaticFiles(directory="web"), name="web")
 
 
 @app.get("/")
-async def root() -> dict:
-    return {"status": "ok"}
+async def root() -> FileResponse:
+    return FileResponse("web/index.html")

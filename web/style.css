@@ -1,0 +1,14 @@
+body { display: flex; margin: 0; font-family: system-ui, sans-serif; height: 100vh; }
+#sidebar { width: 260px; border-right: 1px solid #ddd; padding: 1rem; overflow-y: auto; }
+#main { flex: 1; display: flex; flex-direction: column; padding: 1rem; }
+#messages { flex: 1; overflow-y: auto; }
+.message { margin: 0.5rem 0; }
+.message.user { font-weight: 600; }
+.message.tool { color: #888; font-size: 0.85rem; font-family: monospace; }
+#thinking { color: #888; font-style: italic; }
+#thinking.hidden { display: none; }
+#chat-form { display: flex; gap: 0.5rem; margin-top: 0.5rem; }
+#chat-input { flex: 1; padding: 0.5rem; }
+.status-dot { display: inline-block; width: 8px; height: 8px; border-radius: 50%; margin-right: 0.4rem; }
+.status-dot.connected { background: #2ecc71; }
+.status-dot.disconnected { background: #ccc; }
