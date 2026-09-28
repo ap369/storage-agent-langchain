@@ -31,3 +31,13 @@ def test_verify_token_rejects_mismatched_token():
 
 def test_verify_token_rejects_none():
     assert verify_token(None, "abc123") is False
+
+
+def test_verify_token_rejects_when_both_token_and_expected_are_empty():
+    # A misconfigured expected token (empty string) must never authenticate
+    # anything, including a client that sends an empty token to match it.
+    assert verify_token("", "") is False
+
+
+def test_verify_token_rejects_empty_token_against_real_expected():
+    assert verify_token("", "abc123") is False
