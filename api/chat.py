@@ -4,6 +4,7 @@ import logging
 
 from fastapi import APIRouter, WebSocket
 
+from auth import verify_token
 from storage.db import create_conversation
 
 logger = logging.getLogger(__name__)
@@ -20,7 +21,7 @@ async def chat_websocket(websocket: WebSocket) -> None:
     except json.JSONDecodeError:
         token = None
 
-    if token != websocket.app.state.settings.API_TOKEN:
+    if not verify_token(token, websocket.app.state.settings.API_TOKEN):
         await websocket.send_json({"type": "error", "message": "unauthorized"})
         await websocket.close(code=4401)
         return
@@ -46,9 +47,9 @@ async def chat_websocket(websocket: WebSocket) -> None:
 
         try:
             await _run_turn(agent, message["content"], conversation_id, websocket)
-        except Exception as exc:
+        except Exception:
             logger.warning("agent run failed", exc_info=True)
-            await websocket.send_json({"type": "error", "message": str(exc)})
+            await websocket.send_json({"type": "error", "message": "internal error"})
 
 
 async def _run_turn(agent, content: str, conversation_id: str, websocket: WebSocket) -> None:

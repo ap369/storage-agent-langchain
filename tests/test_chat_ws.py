@@ -92,6 +92,20 @@ def test_websocket_rejects_malformed_first_frame(db):
         assert reply == {"type": "error", "message": "unauthorized"}
 
 
+def test_websocket_rejects_empty_token_even_if_configured_token_is_empty(db):
+    # A misconfigured empty API_TOKEN must never authenticate a client that
+    # sends an empty token to match it (same fail-open class as auth.py).
+    app = make_app(GenericFakeChatModel(messages=iter([])), [])
+    app.state.settings = type("S", (), {"API_TOKEN": ""})()
+    app.state.db = db
+    client = TestClient(app)
+
+    with client.websocket_connect("/ws/chat") as ws:
+        ws.send_json({"token": ""})
+        reply = ws.receive_json()
+        assert reply == {"type": "error", "message": "unauthorized"}
+
+
 def test_websocket_streams_tool_call_and_final_answer(db):
     model = FakeToolCallingModel(messages=iter([
         AIMessage(content="", tool_calls=[
@@ -142,6 +156,8 @@ def test_websocket_reports_agent_failure_as_error_without_crashing(db):
         reply = ws.receive_json()
 
         assert reply["type"] == "error"
+        # the raw exception text ("LLM unreachable") must not reach the client
+        assert reply["message"] == "internal error"
         # connection must still be open for a second message
         ws.send_json({"type": "message", "conversation_id": None, "content": "hi again"})
         reply2 = ws.receive_json()
