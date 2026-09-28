@@ -11,6 +11,6 @@ def parse_bearer_token(header: str | None) -> str | None:
 
 
 def verify_token(token: str | None, expected: str) -> bool:
-    if not token or not expected:
+    if not isinstance(token, str) or not token or not expected:
         return False
     return hmac.compare_digest(token, expected)

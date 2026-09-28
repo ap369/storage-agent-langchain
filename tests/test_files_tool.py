@@ -61,6 +61,32 @@ async def test_search_files_matches_glob(tmp_path):
     assert "b.txt" not in result
 
 
+async def test_search_files_rejects_pattern_that_escapes_sandbox(tmp_path):
+    # A malicious glob pattern (as opposed to a malicious `path`) must not be
+    # able to walk outside the sandbox: Path.relative_to() is purely
+    # syntactic and doesn't reject a ".."-laden relative path on its own.
+    outside = tmp_path.parent / "outside-search-probe"
+    outside.mkdir(exist_ok=True)
+    (outside / "secret.txt").write_text("secret")
+    tools = make_tools(tmp_path)
+
+    result = await tools["search_files"].ainvoke({"pattern": "../outside-search-probe/*", "path": "."})
+
+    assert result == "(no matches)"
+
+
+async def test_search_files_rejects_symlinked_directory_escape(tmp_path):
+    outside = tmp_path.parent / "outside-search-symlink-probe"
+    outside.mkdir(exist_ok=True)
+    (outside / "secret.txt").write_text("secret")
+    (tmp_path / "link").symlink_to(outside)
+    tools = make_tools(tmp_path)
+
+    result = await tools["search_files"].ainvoke({"pattern": "link/*", "path": "."})
+
+    assert result == "(no matches)"
+
+
 async def test_edit_file_replaces_first_occurrence(tmp_path):
     (tmp_path / "f.txt").write_text("foo bar foo")
     tools = make_tools(tmp_path)

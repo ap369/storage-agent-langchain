@@ -41,3 +41,9 @@ def test_verify_token_rejects_when_both_token_and_expected_are_empty():
 
 def test_verify_token_rejects_empty_token_against_real_expected():
     assert verify_token("", "abc123") is False
+
+
+def test_verify_token_rejects_non_string_token():
+    # A non-str, truthy token (e.g. a JSON number from a malformed client
+    # frame) must be rejected cleanly, not raise inside hmac.compare_digest.
+    assert verify_token(12345, "abc123") is False

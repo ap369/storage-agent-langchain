@@ -5,6 +5,7 @@ import re
 from contextlib import AsyncExitStack
 from pathlib import Path
 from typing import Any
+from urllib.parse import quote
 
 import httpx
 from langchain.tools import tool
@@ -65,7 +66,7 @@ def _build_operation_tool(config_name: str, operation: dict[str, Any], client: h
         for name in _PATH_PARAM_PATTERN.findall(path_template):
             if name not in remaining:
                 raise ValueError(f"missing path parameter: {name}")
-            path = path.replace(f"{{{name}}}", str(remaining.pop(name)))
+            path = path.replace(f"{{{name}}}", quote(str(remaining.pop(name)), safe=""))
 
         if method in ("GET", "DELETE"):
             response = await client.request(method, path, params=remaining)

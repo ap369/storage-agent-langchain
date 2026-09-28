@@ -106,6 +106,62 @@ def test_websocket_rejects_empty_token_even_if_configured_token_is_empty(db):
         assert reply == {"type": "error", "message": "unauthorized"}
 
 
+def test_websocket_rejects_list_as_first_frame(db):
+    app = make_app(GenericFakeChatModel(messages=iter([])), [])
+    app.state.db = db
+    client = TestClient(app)
+
+    with client.websocket_connect("/ws/chat") as ws:
+        ws.send_json(["not", "a", "dict"])
+        reply = ws.receive_json()
+        assert reply == {"type": "error", "message": "unauthorized"}
+
+
+def test_websocket_rejects_non_string_token(db):
+    app = make_app(GenericFakeChatModel(messages=iter([])), [])
+    app.state.db = db
+    client = TestClient(app)
+
+    with client.websocket_connect("/ws/chat") as ws:
+        ws.send_json({"token": 12345})
+        reply = ws.receive_json()
+        assert reply == {"type": "error", "message": "unauthorized"}
+
+
+def test_websocket_rejects_binary_first_frame(db):
+    app = make_app(GenericFakeChatModel(messages=iter([])), [])
+    app.state.db = db
+    client = TestClient(app)
+
+    with client.websocket_connect("/ws/chat") as ws:
+        ws.send_bytes(b"\x00\x01\x02")
+        reply = ws.receive_json()
+        assert reply == {"type": "error", "message": "unauthorized"}
+
+
+def test_websocket_disconnect_before_handshake_does_not_crash(db):
+    app = make_app(GenericFakeChatModel(messages=iter([])), [])
+    app.state.db = db
+    client = TestClient(app)
+
+    # Should complete cleanly even though the client never sends a handshake
+    # frame — the server must not raise trying to notify an already-gone client.
+    with client.websocket_connect("/ws/chat") as ws:
+        ws.close()
+
+
+def test_websocket_rejects_non_dict_message_after_auth(db):
+    app = make_app(GenericFakeChatModel(messages=iter([])), [])
+    app.state.db = db
+    client = TestClient(app)
+
+    with client.websocket_connect("/ws/chat") as ws:
+        ws.send_json({"token": "dev-token"})
+        ws.send_json("just a string")
+        reply = ws.receive_json()
+        assert reply == {"type": "error", "message": "invalid message"}
+
+
 def test_websocket_streams_tool_call_and_final_answer(db):
     model = FakeToolCallingModel(messages=iter([
         AIMessage(content="", tool_calls=[

@@ -32,10 +32,18 @@ def build_file_tools(sandbox_root: Path) -> list[BaseTool]:
     async def search_files(pattern: str, path: str = ".") -> str:
         """Search for files matching a glob pattern under a path relative to the sandbox root."""
         target = resolve_in_sandbox(sandbox_root, path)
-        matches = sorted(
-            str(p.relative_to(sandbox_root)) for p in target.rglob(pattern) if p.is_file()
-        )
-        return "\n".join(matches) if matches else "(no matches)"
+        matches = []
+        for p in target.rglob(pattern):
+            if not p.is_file():
+                continue
+            # rglob() doesn't resolve ".." segments a pattern can introduce, and
+            # Path.relative_to() is purely syntactic — resolve before checking
+            # containment, the same check resolve_in_sandbox() makes.
+            resolved = p.resolve(strict=False)
+            if not resolved.is_relative_to(sandbox_root):
+                continue
+            matches.append(str(resolved.relative_to(sandbox_root)))
+        return "\n".join(sorted(matches)) if matches else "(no matches)"
 
     async def read_file(path: str) -> str:
         """Read a file's full text content."""

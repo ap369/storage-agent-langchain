@@ -9,6 +9,11 @@ from storage.db import create_conversation, create_task, get_task, update_task
 
 router = APIRouter()
 
+# asyncio.create_task()'s docs warn the event loop only holds a weak
+# reference to a task: without a strong reference kept somewhere, a task can
+# be garbage-collected mid-run. This set is that strong reference.
+_background_tasks: set[asyncio.Task] = set()
+
 
 def _now() -> str:
     return datetime.now(timezone.utc).isoformat()
@@ -32,7 +37,9 @@ async def post_task(
     conversation_id = await create_conversation(db, source="task")
     task_id = await create_task(db, conversation_id, body.input)
 
-    asyncio.create_task(_run_task(request.app, task_id, conversation_id, body.input))
+    task = asyncio.create_task(_run_task(request.app, task_id, conversation_id, body.input))
+    _background_tasks.add(task)
+    task.add_done_callback(_background_tasks.discard)
 
     return TaskResponse(task_id=task_id, status="pending")
 

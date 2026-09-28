@@ -96,6 +96,34 @@ async def test_task_completes_and_result_is_pollable(db):
     assert task["finished_at"] is not None
 
 
+async def test_post_task_retains_background_task_reference_until_done(db):
+    # asyncio.create_task()'s result must be retained somewhere, or the task
+    # is only weakly referenced by the event loop and can be garbage
+    # collected mid-run, silently stranding a task at "running" forever.
+    from api.tasks import _background_tasks
+
+    app = make_app(GenericFakeChatModel(messages=iter([AIMessage(content="done")])), db)
+
+    with TestClient(app) as client:
+        response = client.post(
+            "/tasks",
+            json={"input": "do something"},
+            headers={"Authorization": "Bearer dev-token"},
+        )
+        task_id = response.json()["task_id"]
+
+        assert len(_background_tasks) >= 1
+
+        for _ in range(50):
+            task = await get_task(db, task_id)
+            if task["status"] != "pending" and task["status"] != "running":
+                break
+            await asyncio.sleep(0.05)
+
+    assert task["status"] == "completed"
+    assert len(_background_tasks) == 0
+
+
 async def test_task_records_failure_without_crashing(db):
     app = make_app(GenericFakeChatModel(messages=iter([])), db)
 

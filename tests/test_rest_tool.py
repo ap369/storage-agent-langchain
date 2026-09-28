@@ -98,6 +98,25 @@ async def test_get_operation_substitutes_path_param_and_sends_bearer_auth():
 
 
 @respx.mock
+async def test_get_operation_url_encodes_path_param_preventing_path_injection():
+    # A malicious path-param value must not be able to redirect the request to
+    # a different, non-allowlisted endpoint on the same host — the whole point
+    # of the allowlist is that the LLM never gets a "call any URL" tool.
+    route = respx.get(
+        "https://flasharray.example.com/api/2.x/volumes/..%2F..%2Fadmin%2Fkeys"
+    ).mock(return_value=httpx.Response(200, json={"ok": True}))
+    configs = json.loads(json.dumps(VOLUMES_CONFIG))
+    configs[0]["auth_value"] = "secret-token"
+
+    async with AsyncExitStack() as stack:
+        tools = {t.name: t for t in await build_rest_tools(configs, stack)}
+        result = await tools["purestorage_get_volume"].ainvoke({"name": "../../admin/keys"})
+
+    assert route.called
+    assert json.loads(result) == {"ok": True}
+
+
+@respx.mock
 async def test_post_operation_sends_remaining_args_as_json_body():
     route = respx.post("https://flasharray.example.com/api/2.x/volumes").mock(
         return_value=httpx.Response(201, json={"created": True})
