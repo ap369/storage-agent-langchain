@@ -1,5 +1,6 @@
 let conversationId = null;
 let ws = null;
+let streaming = null;
 
 function appendMessage(text, className) {
   const div = document.createElement("div");
@@ -21,17 +22,29 @@ function connect() {
   ws = new WebSocket(`ws://${window.location.host}/ws/chat`);
   ws.onmessage = (event) => {
     const data = JSON.parse(event.data);
-    if (data.type === "tool_call") {
+    if (data.type === "token") {
+      if (!streaming || streaming.index !== data.message) {
+        const div = document.createElement("div");
+        div.className = "message assistant";
+        document.getElementById("messages").appendChild(div);
+        streaming = { index: data.message, div, text: "" };
+      }
+      streaming.text += data.delta;
+      streaming.div.innerHTML = DOMPurify.sanitize(marked.parse(streaming.text));
+      streaming.div.scrollIntoView();
+    } else if (data.type === "tool_call") {
       appendMessage(`→ ${data.name}(${JSON.stringify(data.input)})`, "tool");
     } else if (data.type === "tool_result") {
-      appendMessage(`← ${data.name}: ${data.output}`, "tool");
+      appendMessage(`← ${data.name}: ${data.error ? `Error: ${data.error}` : data.output}`, "tool");
       setThinking(true);
     } else if (data.type === "final") {
       setThinking(false);
       conversationId = data.conversation_id;
-      appendMessage(data.content, "assistant");
+      if (!streaming) appendMessage(data.content, "assistant");
+      streaming = null;
     } else if (data.type === "error") {
       setThinking(false);
+      streaming = null;
       appendMessage(`Error: ${data.message}`, "tool");
     }
   };

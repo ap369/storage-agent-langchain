@@ -47,6 +47,21 @@ def get_naming_convention() -> str:
     return "prod-erp-data-500g"
 
 
+@tool
+def broken() -> str:
+    """Always fails."""
+    raise ValueError("kaboom")
+
+
+def receive_until_done(ws):
+    events = []
+    while True:
+        event = ws.receive_json()
+        events.append(event)
+        if event["type"] in ("final", "error"):
+            return events
+
+
 def make_app(model, tools):
     app = FastAPI()
     app.include_router(router)
@@ -117,6 +132,47 @@ def test_websocket_streams_tool_call_and_final_answer(db):
     assert types[-1] == "final"
     assert events[-1]["content"] == "It's prod-erp-data-500g."
     assert events[-1]["conversation_id"]
+
+
+def test_websocket_reports_failed_tool_call_error_text(db):
+    model = FakeToolCallingModel(messages=iter([
+        AIMessage(content="", tool_calls=[ToolCall(name="broken", args={}, id="call_1")]),
+        AIMessage(content="That tool failed."),
+    ]))
+    app = make_app(model, [broken])
+    app.state.db = db
+    client = TestClient(app)
+
+    with client.websocket_connect("/ws/chat") as ws:
+        ws.send_json({"type": "message", "conversation_id": None, "content": "go"})
+        events = receive_until_done(ws)
+
+    results = [e for e in events if e["type"] == "tool_result"]
+    assert len(results) == 1
+    assert "kaboom" in results[0]["error"]
+
+
+def test_websocket_streams_answer_as_tokens_before_final(db):
+    model = FakeToolCallingModel(messages=iter([
+        AIMessage(content="", tool_calls=[
+            ToolCall(name="get_naming_convention", args={}, id="call_1")
+        ]),
+        AIMessage(content="It's prod-erp-data-500g."),
+    ]))
+    app = make_app(model, [get_naming_convention])
+    app.state.db = db
+    client = TestClient(app)
+
+    with client.websocket_connect("/ws/chat") as ws:
+        ws.send_json({"type": "message", "conversation_id": None, "content": "convention?"})
+        events = receive_until_done(ws)
+
+    tokens = [e for e in events if e["type"] == "token"]
+    assert tokens, "expected streamed token frames"
+    assert all(t["delta"] for t in tokens)
+    assert "".join(t["delta"] for t in tokens) == events[-1]["content"]
+    assert len({t["message"] for t in tokens}) == 1
+    assert events.index(tokens[-1]) < len(events) - 1
 
 
 def test_websocket_reports_agent_failure_as_error_without_crashing(db):

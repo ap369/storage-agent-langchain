@@ -68,12 +68,24 @@ async def _run_turn(agent, content: str, conversation_id: str, websocket: WebSoc
                 "type": "tool_result",
                 "name": call.tool_name,
                 "output": str(output.content) if output is not None else None,
+                "error": call.error,
             })
 
     async def consume_messages() -> None:
         nonlocal final_content
+        index = 0
         async for message in stream.messages:
-            final_content = await message.text
+            # Other nodes (e.g. summarization middleware) also call the model;
+            # only the agent's own replies belong in the chat.
+            if message.node != "model":
+                continue
+            index += 1
+            text = ""
+            async for delta in message.text:
+                if delta:
+                    text += delta
+                    await websocket.send_json({"type": "token", "message": index, "delta": delta})
+            final_content = text
 
     await asyncio.gather(consume_tool_calls(), consume_messages())
 

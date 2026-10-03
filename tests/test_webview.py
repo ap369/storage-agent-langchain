@@ -12,6 +12,7 @@ def test_root_serves_index_html(monkeypatch, tmp_path):
     monkeypatch.setenv("API_TOKEN", "dev-token")
     monkeypatch.setenv("DB_PATH", str(tmp_path / "test.db"))
     monkeypatch.setenv("SANDBOX_ROOT", str(tmp_path / "sandbox"))
+    monkeypatch.setenv("MCP_SERVERS_PATH", str(tmp_path / "no-mcp-servers.json"))
 
     with TestClient(app) as client:
         response = client.get("/")

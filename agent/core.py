@@ -1,5 +1,6 @@
 from langchain.agents import create_agent
 from langchain.agents.middleware import (
+    ModelRetryMiddleware,
     SummarizationMiddleware,
     ToolCallLimitMiddleware,
     ToolErrorMiddleware,
@@ -31,6 +32,10 @@ def build_agent(
         system_prompt=system_prompt,
         checkpointer=checkpointer,
         middleware=[
+            # on_failure="error" so an exhausted retry fails the run (a /tasks
+            # task is recorded as failed) instead of returning the error as an
+            # ordinary assistant reply.
+            ModelRetryMiddleware(on_failure="error"),
             ToolErrorMiddleware(on_error=lambda exc, request: f"Error: {exc}"),
             ToolCallLimitMiddleware(run_limit=max_tool_turns, exit_behavior="error"),
             SummarizationMiddleware(

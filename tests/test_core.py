@@ -99,6 +99,42 @@ async def test_build_agent_converts_tool_exception_to_error_message_and_continue
     assert result["messages"][-1].content == "acknowledged"
 
 
+async def test_build_agent_retries_a_transient_model_failure():
+    calls = {"n": 0}
+
+    class FlakyModel(FakeToolCallingModel):
+        def _fail_first_call(self):
+            calls["n"] += 1
+            if calls["n"] == 1:
+                raise ConnectionError("transient")
+
+        def _generate(self, *args, **kwargs):
+            self._fail_first_call()
+            return super()._generate(*args, **kwargs)
+
+        def _stream(self, *args, **kwargs):
+            self._fail_first_call()
+            return super()._stream(*args, **kwargs)
+
+    agent = build_agent(
+        model=FlakyModel(messages=iter([AIMessage(content="recovered")])),
+        tools=[],
+        system_prompt="test",
+        max_tool_turns=20,
+        checkpointer=InMemorySaver(),
+        summarize_trigger_tokens=4000,
+        summarize_keep_messages=20,
+    )
+
+    result = await agent.ainvoke(
+        {"messages": [{"role": "user", "content": "hi"}]},
+        config={"configurable": {"thread_id": "t-retry"}},
+    )
+
+    assert result["messages"][-1].content == "recovered"
+    assert calls["n"] == 2
+
+
 async def test_build_agent_enforces_tool_call_limit():
     from langchain.agents.middleware.tool_call_limit import ToolCallLimitExceededError
 
