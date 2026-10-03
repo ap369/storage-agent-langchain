@@ -26,6 +26,7 @@ def load_skills(skills_dir: Path) -> list["Skill"]:
     skills: dict[str, Skill] = {}
 
     if not skills_dir.is_dir():
+        logger.warning("skills directory not found: %s", skills_dir)
         return []
 
     for skill_dir in sorted(skills_dir.iterdir()):
@@ -41,6 +42,11 @@ def load_skills(skills_dir: Path) -> list["Skill"]:
             raise DuplicateSkillName(f"duplicate skill name: {skill.name!r}")
         skills[skill.name] = skill
 
+    always_on_count = sum(1 for s in skills.values() if s.always_on)
+    logger.info(
+        "loaded %d skills (%d always-on): %s",
+        len(skills), always_on_count, ", ".join(sorted(skills)),
+    )
     return list(skills.values())
 
 
@@ -59,6 +65,10 @@ def _parse_skill_file(skill_file: Path, skill_dir: Path) -> "Skill | None":
         frontmatter = yaml.safe_load(parts[1]) or {}
     except yaml.YAMLError:
         logger.warning("skipping skill %r: invalid YAML frontmatter", skill_dir.name, exc_info=True)
+        return None
+
+    if not isinstance(frontmatter, dict):
+        logger.warning("skipping skill %r: frontmatter is not a YAML mapping", skill_dir.name)
         return None
 
     name = frontmatter.get("name")

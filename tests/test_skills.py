@@ -95,6 +95,27 @@ def test_load_skills_skips_non_boolean_always_on(tmp_path, caplog):
     assert [s.name for s in skills] == ["purestorage"]
 
 
+def test_load_skills_skips_non_mapping_frontmatter(tmp_path, caplog):
+    skill_dir = tmp_path / "broken"
+    skill_dir.mkdir()
+    (skill_dir / "SKILL.md").write_text("---\njust a plain string, not a mapping\n---\nbody")
+    write_skill(tmp_path, "purestorage")
+
+    with caplog.at_level(logging.WARNING):
+        skills = load_skills(tmp_path)
+
+    assert [s.name for s in skills] == ["purestorage"]
+    assert "broken" in caplog.text
+
+
+def test_load_skills_warns_when_dir_missing(tmp_path, caplog):
+    with caplog.at_level(logging.WARNING):
+        skills = load_skills(tmp_path / "does-not-exist")
+
+    assert skills == []
+    assert "does-not-exist" in caplog.text
+
+
 def test_load_skills_raises_on_duplicate_name(tmp_path):
     write_skill(tmp_path, "purestorage", name="purestorage")
     write_skill(tmp_path, "purestorage-2", name="purestorage", description="dup")
