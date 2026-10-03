@@ -1,4 +1,3 @@
-let token = null;
 let conversationId = null;
 let ws = null;
 
@@ -20,7 +19,6 @@ function setThinking(visible) {
 
 function connect() {
   ws = new WebSocket(`ws://${window.location.host}/ws/chat`);
-  ws.onopen = () => ws.send(JSON.stringify({ token }));
   ws.onmessage = (event) => {
     const data = JSON.parse(event.data);
     if (data.type === "tool_call") {
@@ -40,7 +38,7 @@ function connect() {
 }
 
 async function loadMcpStatus() {
-  const response = await fetch("/mcp/status", { headers: { Authorization: `Bearer ${token}` } });
+  const response = await fetch("/mcp/status");
   const servers = await response.json();
   renderMcpStatus(servers);
 }
@@ -78,6 +76,5 @@ document.getElementById("chat-form").addEventListener("submit", (event) => {
   input.value = "";
 });
 
-token = window.prompt("API token:");
 connect();
 loadMcpStatus();

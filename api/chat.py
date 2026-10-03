@@ -4,7 +4,6 @@ import logging
 
 from fastapi import APIRouter, WebSocket
 
-from auth import verify_token
 from storage.db import create_conversation
 
 logger = logging.getLogger(__name__)
@@ -14,20 +13,6 @@ router = APIRouter()
 @router.websocket("/ws/chat")
 async def chat_websocket(websocket: WebSocket) -> None:
     await websocket.accept()
-
-    try:
-        first_frame = json.loads(await websocket.receive_text())
-        token = first_frame.get("token") if isinstance(first_frame, dict) else None
-    except Exception:
-        token = None
-
-    if not verify_token(token, websocket.app.state.settings.API_TOKEN):
-        try:
-            await websocket.send_json({"type": "error", "message": "unauthorized"})
-            await websocket.close(code=4401)
-        except Exception:
-            pass  # client may already be gone (e.g. disconnected before handshaking)
-        return
 
     agent = websocket.app.state.agent
     db = websocket.app.state.db

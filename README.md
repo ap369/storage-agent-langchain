@@ -17,14 +17,14 @@ uv sync
 cp .env.example .env
 ```
 
-Edit `.env` with your LLM credentials and a token for authenticating API/WebSocket clients:
+Edit `.env` with your LLM credentials and a token for the trigger REST API:
 
 | Variable | Required | Default | Description |
 |---|---|---|---|
 | `LLM_BASE_URL` | yes | — | OpenAI-compatible base URL (e.g. `https://api.groq.com/openai/v1`) |
 | `LLM_API_KEY` | yes | — | API key for the LLM endpoint |
 | `LLM_MODEL` | yes | — | Model name (e.g. `openai/gpt-oss-120b`) |
-| `API_TOKEN` | yes | — | Bearer token required by the chat WebSocket and the trigger/status REST endpoints |
+| `API_TOKEN` | yes | — | Bearer token required by the trigger REST API (`/tasks`). The chat webview is unauthenticated. |
 | `SANDBOX_ROOT` | no | `./data/sandbox` | Root directory the file tools are confined to |
 | `DB_PATH` | no | `./data/storage_agent.db` | SQLite database path (conversations, tasks) |
 | `SYSTEM_PROMPT_PATH` | no | `./config/system_prompt.md` | Base system prompt file |
@@ -46,13 +46,13 @@ This starts the app at `http://localhost:8000` — the chat webview at `/`, the 
 
 ## API surface
 
-All endpoints below require `Authorization: Bearer <API_TOKEN>` (the WebSocket sends the token as its first frame instead).
+The chat webview (`/`, `/ws/chat`, `/mcp/status`) has no authentication — anyone who can reach the port can use it. The trigger REST API (`/tasks`) requires `Authorization: Bearer <API_TOKEN>`.
 
 - **`GET /`** — chat webview.
-- **`WS /ws/chat`** — first frame `{"token": "..."}`, then `{"type": "message", "conversation_id": null_or_id, "content": "..."}` per turn. Streams `tool_call` / `tool_result` / `final` / `error` frames back.
-- **`POST /tasks`** — body `{"input": "..."}`. Runs the agent in the background; returns `202 {"task_id", "status": "pending"}` immediately.
-- **`GET /tasks/{task_id}`** — `{"task_id", "status", "input", "result", "error", "created_at", "started_at", "finished_at"}`.
+- **`WS /ws/chat`** — no handshake; just send `{"type": "message", "conversation_id": null_or_id, "content": "..."}` per turn. Streams `tool_call` / `tool_result` / `final` / `error` frames back.
 - **`GET /mcp/status`** — `[{"name", "transport", "connected", "tools"}]`, one entry per configured MCP server.
+- **`POST /tasks`** (requires `Authorization: Bearer <API_TOKEN>`) — body `{"input": "..."}`. Runs the agent in the background; returns `202 {"task_id", "status": "pending"}` immediately.
+- **`GET /tasks/{task_id}`** (requires `Authorization: Bearer <API_TOKEN>`) — `{"task_id", "status", "input", "result", "error", "created_at", "started_at", "finished_at"}`.
 
 ## Configuration files
 

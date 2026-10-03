@@ -50,7 +50,6 @@ def get_naming_convention() -> str:
 def make_app(model, tools):
     app = FastAPI()
     app.include_router(router)
-    app.state.settings = type("S", (), {"API_TOKEN": "dev-token"})()
     app.state.agent = build_agent(
         model=model,
         tools=tools,
@@ -70,93 +69,23 @@ async def db(tmp_path):
     await database.close()
 
 
-def test_websocket_rejects_wrong_token(db):
+def test_websocket_disconnect_immediately_after_connect_does_not_crash(db):
     app = make_app(GenericFakeChatModel(messages=iter([])), [])
     app.state.db = db
     client = TestClient(app)
 
-    with client.websocket_connect("/ws/chat") as ws:
-        ws.send_json({"token": "wrong-token"})
-        reply = ws.receive_json()
-        assert reply == {"type": "error", "message": "unauthorized"}
-
-
-def test_websocket_rejects_malformed_first_frame(db):
-    app = make_app(GenericFakeChatModel(messages=iter([])), [])
-    app.state.db = db
-    client = TestClient(app)
-
-    with client.websocket_connect("/ws/chat") as ws:
-        ws.send_text("not json at all")
-        reply = ws.receive_json()
-        assert reply == {"type": "error", "message": "unauthorized"}
-
-
-def test_websocket_rejects_empty_token_even_if_configured_token_is_empty(db):
-    # A misconfigured empty API_TOKEN must never authenticate a client that
-    # sends an empty token to match it (same fail-open class as auth.py).
-    app = make_app(GenericFakeChatModel(messages=iter([])), [])
-    app.state.settings = type("S", (), {"API_TOKEN": ""})()
-    app.state.db = db
-    client = TestClient(app)
-
-    with client.websocket_connect("/ws/chat") as ws:
-        ws.send_json({"token": ""})
-        reply = ws.receive_json()
-        assert reply == {"type": "error", "message": "unauthorized"}
-
-
-def test_websocket_rejects_list_as_first_frame(db):
-    app = make_app(GenericFakeChatModel(messages=iter([])), [])
-    app.state.db = db
-    client = TestClient(app)
-
-    with client.websocket_connect("/ws/chat") as ws:
-        ws.send_json(["not", "a", "dict"])
-        reply = ws.receive_json()
-        assert reply == {"type": "error", "message": "unauthorized"}
-
-
-def test_websocket_rejects_non_string_token(db):
-    app = make_app(GenericFakeChatModel(messages=iter([])), [])
-    app.state.db = db
-    client = TestClient(app)
-
-    with client.websocket_connect("/ws/chat") as ws:
-        ws.send_json({"token": 12345})
-        reply = ws.receive_json()
-        assert reply == {"type": "error", "message": "unauthorized"}
-
-
-def test_websocket_rejects_binary_first_frame(db):
-    app = make_app(GenericFakeChatModel(messages=iter([])), [])
-    app.state.db = db
-    client = TestClient(app)
-
-    with client.websocket_connect("/ws/chat") as ws:
-        ws.send_bytes(b"\x00\x01\x02")
-        reply = ws.receive_json()
-        assert reply == {"type": "error", "message": "unauthorized"}
-
-
-def test_websocket_disconnect_before_handshake_does_not_crash(db):
-    app = make_app(GenericFakeChatModel(messages=iter([])), [])
-    app.state.db = db
-    client = TestClient(app)
-
-    # Should complete cleanly even though the client never sends a handshake
-    # frame — the server must not raise trying to notify an already-gone client.
+    # Should complete cleanly even though the client disconnects without
+    # sending any message.
     with client.websocket_connect("/ws/chat") as ws:
         ws.close()
 
 
-def test_websocket_rejects_non_dict_message_after_auth(db):
+def test_websocket_rejects_non_dict_message(db):
     app = make_app(GenericFakeChatModel(messages=iter([])), [])
     app.state.db = db
     client = TestClient(app)
 
     with client.websocket_connect("/ws/chat") as ws:
-        ws.send_json({"token": "dev-token"})
         ws.send_json("just a string")
         reply = ws.receive_json()
         assert reply == {"type": "error", "message": "invalid message"}
@@ -174,7 +103,6 @@ def test_websocket_streams_tool_call_and_final_answer(db):
     client = TestClient(app)
 
     with client.websocket_connect("/ws/chat") as ws:
-        ws.send_json({"token": "dev-token"})
         ws.send_json({"type": "message", "conversation_id": None, "content": "What's the naming convention?"})
 
         events = []
@@ -201,13 +129,11 @@ def test_websocket_reports_agent_failure_as_error_without_crashing(db):
 
     app = FastAPI()
     app.include_router(router)
-    app.state.settings = type("S", (), {"API_TOKEN": "dev-token"})()
     app.state.agent = FailingModel()
     app.state.db = db
     client = TestClient(app)
 
     with client.websocket_connect("/ws/chat") as ws:
-        ws.send_json({"token": "dev-token"})
         ws.send_json({"type": "message", "conversation_id": None, "content": "hi"})
         reply = ws.receive_json()
 
