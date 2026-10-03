@@ -1,3 +1,5 @@
+from pathlib import Path
+
 import pytest
 
 from agent.tools.files import SandboxViolation, resolve_in_sandbox
@@ -38,3 +40,12 @@ def test_resolve_in_sandbox_rejects_symlink_escape(tmp_path):
 def test_resolve_in_sandbox_allows_new_file_that_does_not_exist_yet(tmp_path):
     result = resolve_in_sandbox(tmp_path, "new/nested/file.txt")
     assert result == tmp_path / "new" / "nested" / "file.txt"
+
+
+def test_resolve_in_sandbox_works_when_sandbox_root_is_relative(tmp_path, monkeypatch):
+    (tmp_path / "notes.txt").write_text("hi")
+    monkeypatch.chdir(tmp_path)
+
+    result = resolve_in_sandbox(Path("."), "notes.txt")
+
+    assert result == tmp_path.resolve() / "notes.txt"

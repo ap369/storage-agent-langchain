@@ -9,6 +9,7 @@ class SandboxViolation(Exception):
 
 
 def resolve_in_sandbox(sandbox_root: Path, user_path: str) -> Path:
+    sandbox_root = sandbox_root.resolve(strict=False)
     candidate = Path(user_path)
     if candidate.is_absolute() or ".." in candidate.parts:
         raise SandboxViolation(f"path escapes sandbox: {user_path!r}")

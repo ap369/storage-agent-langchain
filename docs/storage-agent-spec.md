@@ -2,7 +2,7 @@
 
 This file merges what were three separate documents into one: the core system design, the skills system design, and the skills system's step-by-step implementation plan. The three originals (`docs/superpowers/specs/2026-09-24-storage-agent-design.md`, `docs/superpowers/specs/2026-09-25-skills-design.md`, `docs/superpowers/plans/2026-09-25-skills-system.md`) have been removed; this file is now the single source of truth.
 
-**Status:** Core system implemented (Milestones 1–4 complete), skills system designed and implemented on top of it, plus post-implementation additions (a WebSocket resilience fix, webview UX polish, an MCP connection-status feature). The whole design was subsequently updated to a LangChain-based implementation (tool-calling, agent loop, MCP integration, conversation persistence) — re-implementation against the design below is pending; nothing in this repository has been built yet.
+**Status:** Implemented. Both Part 1 (core system: sandboxed file tools, allowlisted REST tool, MCP client, chat webview, trigger REST API, LangChain-based agent loop with checkpointer persistence) and Part 2/3 (skills system: `agent/skills.py`, `agent/tools/skills.py`, `agent/prompt.py`, wired into `main.py`) are built, tested, and verified live against the real LLM endpoint.
 
 ---
 
