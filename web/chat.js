@@ -5,7 +5,11 @@ let ws = null;
 function appendMessage(text, className) {
   const div = document.createElement("div");
   div.className = `message ${className}`;
-  div.textContent = text;
+  if (className === "assistant") {
+    div.innerHTML = DOMPurify.sanitize(marked.parse(text));
+  } else {
+    div.textContent = text;
+  }
   document.getElementById("messages").appendChild(div);
   div.scrollIntoView();
 }

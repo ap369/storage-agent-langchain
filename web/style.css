@@ -8,6 +8,13 @@ body { display: flex; margin: 0; font-family: system-ui, sans-serif; height: 100
 .message.assistant { align-self: flex-start; background: #f0f1f3; color: #1a1a1a; border-bottom-left-radius: 0.25rem; }
 .message.tool { align-self: center; max-width: 90%; background: none; padding: 0.1rem 0; color: #999; font-size: 0.8rem; font-family: monospace; }
 
+.message.assistant > :first-child { margin-top: 0; }
+.message.assistant > :last-child { margin-bottom: 0; }
+.message.assistant pre { background: #e4e5e8; padding: 0.5rem; border-radius: 0.4rem; overflow-x: auto; }
+.message.assistant code { font-family: monospace; }
+.message.assistant table { border-collapse: collapse; }
+.message.assistant th, .message.assistant td { border: 1px solid #ccc; padding: 0.3rem 0.5rem; }
+
 #thinking { align-self: flex-start; color: #888; font-style: italic; padding: 0.2rem 0.4rem; }
 #thinking.hidden { display: none; }
 #chat-form { display: flex; gap: 0.5rem; margin-top: 0.5rem; }
