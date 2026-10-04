@@ -19,8 +19,8 @@ body { display: flex; margin: 0; font-family: system-ui, sans-serif; height: 100
 .message.assistant { align-self: flex-start; background: #f0f1f3; color: #1a1a1a; border-bottom-left-radius: 0.25rem; }
 .message.tool { align-self: center; max-width: 90%; background: none; padding: 0.1rem 0; color: #999; font-size: 0.8rem; font-family: monospace; }
 
-.tool-call { align-self: center; width: 90%; color: #666; font-size: 0.8rem; }
-.tool-call summary { cursor: pointer; text-align: center; font-family: monospace; color: #888; }
+.tool-call { align-self: flex-start; max-width: 70%; color: #666; font-size: 0.8rem; }
+.tool-call summary { cursor: pointer; font-family: monospace; color: #888; }
 .tool-call summary::after { margin-left: 0.4rem; }
 .tool-call.pending summary::after { content: "…"; }
 .tool-call.succeeded summary::after { content: "✓"; color: #2e9d57; }
