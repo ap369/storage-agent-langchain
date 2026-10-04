@@ -16,6 +16,7 @@ from agent.tools.mcp import build_mcp_tools, load_mcp_server_configs
 from agent.tools.rest import build_rest_tools, load_api_configs
 from agent.tools.skills import build_skill_tools
 from api.chat import router as chat_router
+from api.files import router as files_router
 from api.mcp_status import router as mcp_status_router
 from api.tasks import router as tasks_router
 from settings import Settings
@@ -32,6 +33,7 @@ async def lifespan(app: FastAPI):
 
     sandbox_root = Path(settings.SANDBOX_ROOT).resolve(strict=False)
     sandbox_root.mkdir(parents=True, exist_ok=True)
+    app.state.sandbox_root = sandbox_root
 
     app.state.db = await init_db(Path(settings.DB_PATH))
 
@@ -86,6 +88,7 @@ async def lifespan(app: FastAPI):
 
 app = FastAPI(lifespan=lifespan)
 app.include_router(chat_router)
+app.include_router(files_router)
 app.include_router(tasks_router)
 app.include_router(mcp_status_router)
 app.mount("/web", StaticFiles(directory="web"), name="web")

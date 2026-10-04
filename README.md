@@ -46,11 +46,17 @@ This starts the app at `http://localhost:8000` — the chat webview at `/`, the 
 
 ## API surface
 
-The chat webview (`/`, `/ws/chat`, `/mcp/status`) has no authentication — anyone who can reach the port can use it. The trigger REST API (`/tasks`) requires `Authorization: Bearer <API_TOKEN>`.
+The chat webview (`/`, `/ws/chat`, `/mcp/status`, `/files…`) has no authentication — anyone who can reach the port can use it. The trigger REST API (`/tasks`) requires `Authorization: Bearer <API_TOKEN>`.
 
 - **`GET /`** — chat webview.
 - **`WS /ws/chat`** — no handshake; just send `{"type": "message", "conversation_id": null_or_id, "content": "..."}` per turn. Streams `tool_call` / `tool_result` / `final` / `error` frames back.
 - **`GET /mcp/status`** — `[{"name", "transport", "connected", "tools"}]`, one entry per configured MCP server.
+- **`GET /files?path=`** — lists a sandbox folder: `[{"name", "type": "dir"|"file", "size"}]`, folders first.
+- **`POST /files/dir`** — body `{"path": "..."}`, creates a folder (`409` if it exists).
+- **`POST /files/upload?path=`** — multipart field `files` (one or more), saved into that folder; refuses to overwrite (`409`).
+- **`GET /files/download?path=`** — downloads a file.
+
+All `/files` paths are relative to `SANDBOX_ROOT`; anything resolving outside it is rejected with `400`.
 - **`POST /tasks`** (requires `Authorization: Bearer <API_TOKEN>`) — body `{"input": "..."}`. Runs the agent in the background; returns `202 {"task_id", "status": "pending"}` immediately.
 - **`GET /tasks/{task_id}`** (requires `Authorization: Bearer <API_TOKEN>`) — `{"task_id", "status", "input", "result", "error", "created_at", "started_at", "finished_at"}`.
 

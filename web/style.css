@@ -1,5 +1,16 @@
 body { display: flex; margin: 0; font-family: system-ui, sans-serif; height: 100vh; }
 #sidebar { width: 260px; border-right: 1px solid #ddd; padding: 1rem; overflow-y: auto; }
+#files-panel { width: 280px; border-left: 1px solid #ddd; padding: 1rem; overflow-y: auto; font-size: 0.9rem; }
+.files-actions { display: flex; gap: 0.4rem; margin-bottom: 0.6rem; }
+#files-path { margin-bottom: 0.5rem; color: #888; word-break: break-all; }
+#files-path a { color: #2563eb; text-decoration: none; }
+#files-list { list-style: none; margin: 0; padding: 0; }
+#files-list li { display: flex; justify-content: space-between; gap: 0.5rem; padding: 0.25rem 0; border-bottom: 1px solid #f0f0f0; }
+#files-list a { color: #1a1a1a; text-decoration: none; word-break: break-all; }
+#files-list li.dir a { font-weight: 600; }
+#files-list a:hover { color: #2563eb; }
+.file-size { color: #999; white-space: nowrap; }
+.files-empty { color: #999; font-style: italic; }
 #main { flex: 1; display: flex; flex-direction: column; padding: 1rem; min-width: 0; }
 #messages { flex: 1; overflow-y: auto; display: flex; flex-direction: column; gap: 0.6rem; }
 
