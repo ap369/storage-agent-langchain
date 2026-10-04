@@ -134,6 +134,28 @@ def test_websocket_streams_tool_call_and_final_answer(db):
     assert events[-1]["conversation_id"]
 
 
+def test_websocket_tool_result_carries_its_call_id(db):
+    model = FakeToolCallingModel(messages=iter([
+        AIMessage(content="", tool_calls=[
+            ToolCall(name="get_naming_convention", args={}, id="call_1"),
+            ToolCall(name="get_naming_convention", args={}, id="call_2"),
+        ]),
+        AIMessage(content="done"),
+    ]))
+    app = make_app(model, [get_naming_convention])
+    app.state.db = db
+    client = TestClient(app)
+
+    with client.websocket_connect("/ws/chat") as ws:
+        ws.send_json({"type": "message", "conversation_id": None, "content": "go"})
+        events = receive_until_done(ws)
+
+    call_ids = [e["id"] for e in events if e["type"] == "tool_call"]
+    result_ids = [e["id"] for e in events if e["type"] == "tool_result"]
+    assert sorted(call_ids) == ["call_1", "call_2"]
+    assert sorted(result_ids) == ["call_1", "call_2"]
+
+
 def test_websocket_reports_failed_tool_call_error_text(db):
     model = FakeToolCallingModel(messages=iter([
         AIMessage(content="", tool_calls=[ToolCall(name="broken", args={}, id="call_1")]),

@@ -8,6 +8,16 @@ body { display: flex; margin: 0; font-family: system-ui, sans-serif; height: 100
 .message.assistant { align-self: flex-start; background: #f0f1f3; color: #1a1a1a; border-bottom-left-radius: 0.25rem; }
 .message.tool { align-self: center; max-width: 90%; background: none; padding: 0.1rem 0; color: #999; font-size: 0.8rem; font-family: monospace; }
 
+.tool-call { align-self: center; width: 90%; color: #666; font-size: 0.8rem; }
+.tool-call summary { cursor: pointer; text-align: center; font-family: monospace; color: #888; }
+.tool-call summary::after { margin-left: 0.4rem; }
+.tool-call.pending summary::after { content: "…"; }
+.tool-call.succeeded summary::after { content: "✓"; color: #2e9d57; }
+.tool-call.failed summary::after { content: "✗ failed"; color: #c0392b; }
+.tool-call[open] { background: #fafafa; border: 1px solid #eee; border-radius: 0.5rem; padding: 0.4rem 0.6rem; }
+.tool-label { margin-top: 0.4rem; font-weight: 600; color: #555; }
+.tool-call pre { margin: 0.2rem 0 0; padding: 0.4rem; background: #f0f1f3; border-radius: 0.3rem; max-height: 15rem; overflow: auto; white-space: pre-wrap; word-break: break-word; font-size: 0.75rem; }
+
 .message.assistant > :first-child { margin-top: 0; }
 .message.assistant > :last-child { margin-bottom: 0; }
 .message.assistant pre { background: #e4e5e8; padding: 0.5rem; border-radius: 0.4rem; overflow-x: auto; }

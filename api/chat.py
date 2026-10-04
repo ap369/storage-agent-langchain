@@ -56,6 +56,7 @@ async def _run_turn(agent, content: str, conversation_id: str, websocket: WebSoc
         async for call in stream.tool_calls:
             await websocket.send_json({
                 "type": "tool_call",
+                "id": call.tool_call_id,
                 "name": call.tool_name,
                 "input": call.input,
             })
@@ -66,6 +67,7 @@ async def _run_turn(agent, content: str, conversation_id: str, websocket: WebSoc
             output = call.output
             await websocket.send_json({
                 "type": "tool_result",
+                "id": call.tool_call_id,
                 "name": call.tool_name,
                 "output": str(output.content) if output is not None else None,
                 "error": call.error,
